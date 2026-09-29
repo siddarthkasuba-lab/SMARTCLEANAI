@@ -1,0 +1,466 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>SMARTCLEAN AI · 3D operations view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e8ecef;--panel:rgba(255,255,255,.9);--ink:#16222e;--mut:#5d6b78;--line:#d5dce2;--chip:#eef2f4;--acc:#0b5d5b;--ok:#2c9a72;--watch:#d9a521;--high:#e4761b;--crit:#d2382f;--wet:#2a8f52;--dry:#2f63c8}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e161d;--panel:rgba(18,28,38,.9);--ink:#e8eff4;--mut:#93a3b1;--line:#28394a;--chip:#182532;--acc:#5fd1c8;--ok:#3ec594;--watch:#eab93a;--high:#f08a3a;--crit:#f0564c;--wet:#46c27a;--dry:#6b95ff}}
+:root[data-theme="dark"]{--bg:#0e161d;--panel:rgba(18,28,38,.9);--ink:#e8eff4;--mut:#93a3b1;--line:#28394a;--chip:#182532;--acc:#5fd1c8;--ok:#3ec594;--watch:#eab93a;--high:#f08a3a;--crit:#f0564c;--wet:#46c27a;--dry:#6b95ff}
+*{box-sizing:border-box}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Instrument Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#stage{position:fixed;inset:0}canvas{display:block;touch-action:none}
+.card{position:fixed;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(10,25,40,.12)}
+.rail{left:14px;top:calc(14px + env(safe-area-inset-top,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:330px;overflow:auto}
+.insp{right:14px;top:calc(14px + env(safe-area-inset-top,0px))}
+h1{font:700 22px "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.01em;margin:0}
+header p{margin:2px 0 12px;color:var(--mut);font-size:12.5px}
+h2{font:600 12.5px "Instrument Sans",system-ui,sans-serif;color:var(--mut);margin:16px 0 6px}
+button{font:inherit;cursor:pointer;color:inherit}
+.pipe{display:flex;list-style:none;margin:0 0 10px;padding:0;gap:4px}
+.pipe li{flex:1;text-align:center;padding:6px;border-radius:8px;background:var(--chip);color:var(--mut);font-weight:600;font-size:12.5px;transition:background .25s,color .25s}
+.pipe li.on{background:var(--acc);color:var(--bg)}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pri{padding:10px 4px;border:0;border-radius:10px;background:var(--acc);color:var(--bg);font-weight:600}
+.acts2{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.ghost{padding:8px;border-radius:10px;border:1px solid var(--line);background:transparent;font-weight:500}
+.ghost[aria-pressed=true]{border-color:var(--acc);color:var(--acc);font-weight:600}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:12px}
+.kpi div{background:var(--chip);border-radius:10px;padding:8px 10px;font-size:11.5px;color:var(--mut)}
+.kpi b{display:block;font:700 24px "Bricolage Grotesque",system-ui,sans-serif;color:var(--ink)}
+ul{list-style:none;margin:0;padding:0}
+.qr{display:grid;grid-template-columns:10px 1fr auto 30px;gap:0 8px;align-items:center;width:100%;padding:8px 8px 6px;border:1px solid transparent;border-radius:10px;background:transparent;text-align:left}
+.qr:hover,.qr.sel{background:var(--chip);border-color:var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;display:block}.mu{color:var(--mut);font-size:12px}.sc{font-weight:700;text-align:right}
+.bar{grid-column:1/-1;height:4px;background:var(--line);border-radius:4px;margin-top:6px;display:block;overflow:hidden}.bar u{display:block;height:100%;text-decoration:none}
+.rt{display:flex;gap:8px;align-items:center;padding:6px 8px;border-left:3px solid var(--acc);background:var(--chip);border-radius:0 8px 8px 0;margin-bottom:4px;font-size:13px}
+.rt i{font-style:normal;font-weight:700;color:var(--acc);min-width:14px}.rt.done{opacity:.6}.rt.done::after{content:"Collected";margin-left:auto;font-size:11.5px;color:var(--ok);font-weight:600}
+.log li{font-size:12px;color:var(--mut);padding:3px 0;border-bottom:1px solid var(--line)}
+.note{font-size:11.5px;color:var(--mut);margin:14px 0 0}
+.ih{display:flex;justify-content:space-between;align-items:center}.ih h2{margin:0;font:700 20px "Bricolage Grotesque",system-ui,sans-serif;color:var(--ink)}
+.pill{padding:3px 10px;border-radius:999px;color:#fff;font-weight:600;font-size:12px}
+.big{display:flex;align-items:baseline;gap:6px;margin:8px 0 2px;color:var(--mut);font-size:12.5px}
+.big b{font:700 32px "Bricolage Grotesque",system-ui,sans-serif;color:var(--ink)}.big b+span{margin-right:10px}
+#spark{width:100%;height:auto;display:block;margin:4px 0}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:8px 0;font-size:13px}dt{color:var(--mut)}dd{margin:0;text-align:right;font-weight:600}
+.lbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut);margin-top:8px}
+input[type=range]{width:100%;accent-color:var(--acc);margin:4px 0}
+#iAct{margin:6px 0 0;font-weight:500}
+.tag{position:absolute;left:0;top:0;display:flex;gap:6px;align-items:center;padding:4px 10px 4px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;will-change:transform}
+.tag.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tag span{color:var(--mut);font-weight:500}.tag.dp{cursor:default}
+.tour{width:100%;margin:0 0 8px;padding:9px;border-radius:10px;border:1px dashed var(--acc);background:transparent;color:var(--acc);font-weight:600}
+#cap{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));max-width:max(220px,calc(100vw - 720px));padding:10px 16px;border-radius:12px;background:var(--acc);color:var(--bg);font-weight:600;text-align:center;display:none}
+.imp{margin-top:8px;padding:10px;border-radius:10px;background:var(--chip);font-size:12.5px}.imp b{font-size:15px}.imp small{display:block;color:var(--mut);margin-top:4px;font-size:11px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.live{width:100%;margin:0 0 6px;padding:12px}.live[aria-pressed=true]{background:var(--crit);color:#fff}
+.insp{bottom:calc(14px + env(safe-area-inset-bottom,0px));width:380px;overflow:auto}
+.log{max-height:200px;overflow:auto}.log li{line-height:1.45}
+.cmp{border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:10px;padding:10px 12px;margin:10px 0;background:var(--chip)}
+.ch{display:flex;justify-content:space-between;align-items:center}.sw{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--tc);margin-right:7px}
+.pb{height:8px;background:var(--line);border-radius:6px;margin:8px 0;overflow:hidden}.pb u{display:block;height:100%;text-decoration:none;transition:width .4s}
+.why{font-size:12.5px;line-height:1.5;margin:8px 0 0}.mut{color:var(--mut);font-size:12px;margin:4px 0}
+.insp h3{font:600 12.5px "Instrument Sans",system-ui,sans-serif;color:var(--mut);margin:14px 0 4px}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mut)}
+.sl{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.sl label{font-size:12px;color:var(--mut);display:block}.sl b{float:right;color:var(--ink)}
+.tag .tw{color:var(--wet)}.tag .td{color:var(--dry)}
+.tabs{display:none;position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;gap:6px}.tabs button{flex:1;background:var(--panel);padding:8px}.tabs button[aria-pressed=true]{border-color:var(--acc);color:var(--acc);font-weight:600}
+.ov{position:fixed;inset:0;background:rgba(6,12,19,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}.ov[hidden]{display:none}
+.ovc{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:860px;width:100%;max-height:92vh;overflow:auto}.ovc .mut{font-size:13px;line-height:1.5}
+.ch2{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}.ch2 span{padding:8px 12px;border-radius:10px;background:var(--chip);border:1px solid var(--line);font-size:13px}.ch2 em{font-style:normal;color:var(--mut)}
+.ch2.w span:last-child{border:2px solid var(--wet)}.ch2.d span:last-child{border:2px solid var(--dry)}
+:root{--nav:52px}
+.app{display:grid;grid-template-rows:var(--nav) minmax(0,1fr);height:100%}
+.nav{position:relative;z-index:4;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+.brand{font:700 16px "Bricolage Grotesque",system-ui,sans-serif;margin-right:8px}.nl{display:flex;gap:4px}.sp{flex:1}
+.ni{padding:8px 12px;border:0;border-radius:9px;background:transparent;font-weight:500}.ni[aria-current=page]{background:var(--acc);color:var(--bg);font-weight:600}
+.nav .add{padding:8px 14px;border:0;border-radius:9px;background:var(--acc);color:var(--bg);font-weight:700}
+.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--line);color:var(--mut);margin-left:6px}.nav .chip{margin:0}
+.main{display:grid;grid-template-columns:minmax(290px,24%) minmax(0,1fr) minmax(320px,26%);min-height:0}
+.main>.card{position:static;width:auto;height:100%;min-height:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;border-bottom:0;background:var(--panel)}
+.main>.rail{overflow:auto;border-left:0;border-right:1px solid var(--line)}
+.main>.insp{display:flex;flex-direction:column;overflow:hidden;padding:0;border-right:0;border-left:1px solid var(--line)}
+#stage{position:relative;inset:auto;min-width:0;min-height:0;overflow:hidden}
+#cap{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:min(90%,520px)}
+.sbhead{padding:14px 16px;border-bottom:1px solid var(--line)}.sbt{font:600 11.5px "Instrument Sans",system-ui,sans-serif;letter-spacing:.08em;color:var(--mut);margin:0 0 6px}
+.sbscroll{flex:1;min-height:0;overflow:auto;padding:4px 16px 16px}
+.sbact{display:grid;gap:6px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}.sbact[hidden]{display:none}
+.btn{display:inline-block;text-align:center;text-decoration:none;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit;font-weight:500;color:inherit}
+.dng{color:var(--crit);border-color:var(--crit)}.danger{background:var(--crit);color:#fff}
+.chk{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--mut);margin-top:8px}
+.rec{margin:8px 0 4px;font-size:13px}details summary{cursor:pointer;color:var(--mut);font-size:12.5px;margin-top:4px}.loc{margin:6px 0 0;line-height:1.5}.lnk{color:var(--acc);font-weight:600}
+.pg{position:fixed;left:0;right:0;bottom:0;top:calc(var(--nav) + env(safe-area-inset-top,0px));overflow:auto;background:var(--bg);z-index:2;padding:18px clamp(12px,3vw,32px) calc(24px + env(safe-area-inset-bottom,0px))}.pg[hidden]{display:none}
+.pgh{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px}.pgh h2{margin:0;font:700 22px "Bricolage Grotesque",system-ui,sans-serif;color:var(--ink)}.pga{display:flex;gap:6px;flex-wrap:wrap}.pga button{width:auto;padding:10px 16px}.h3{font:600 13px "Instrument Sans",system-ui,sans-serif;color:var(--mut);margin:16px 0 4px}
+.flt{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:6px}
+.flt input,.flt select,.fg input,.fg select{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}.fg input,.fg select{margin-top:3px}
+.tblw{overflow-x:auto}.tbl{width:100%;border-collapse:collapse;font-size:13px}.tbl th{text-align:left;color:var(--mut);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tbody tr:hover,.tbl tr.sel{background:var(--chip)}.tbl td button{padding:6px 10px;border-radius:8px;font-size:12.5px;border:1px solid var(--line);background:transparent;margin:2px 4px 2px 0}.tbl tr.emp td{color:var(--mut);padding:20px 10px}
+.rb{margin-top:10px;max-width:640px}
+fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 12px;padding:10px 12px}legend{font-weight:600;font-size:13px;padding:0 6px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.fg label{font-size:12.5px;color:var(--mut);display:block}
+.er{color:var(--crit);font-size:11.5px;display:block}.er.warn{color:var(--high);font-size:12.5px}input[aria-invalid=true]{border-color:var(--crit)}
+.fa{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}.fa button,.fa .btn{width:auto;padding:10px 18px}
+.warnbar{background:rgba(217,165,33,.16);border:1px solid var(--watch);padding:8px 10px;border-radius:8px;font-size:12.5px;margin:8px 0 0}
+.ovc.sm{max-width:420px}#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--nav) + 12px + env(safe-area-inset-top,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-weight:600;z-index:9;display:none;max-width:90vw}
+@media(max-width:900px){html,body{overflow:auto;height:auto}.app{display:block;height:auto}.nav{position:sticky;top:0}.nav .brand,.nav .chip{display:none}
+.main{display:flex;flex-direction:column}#stage{order:1;height:56vh;min-height:320px;flex:none}.main>.insp{order:2;height:auto}.insp .sbscroll{overflow:visible}.main>.rail{order:3;height:auto;border-right:0;border-top:1px solid var(--line)}.sbact{position:sticky;bottom:0}
+.flt,.fg{grid-template-columns:1fr}.tbl thead{display:none}.tbl,.tbl tbody,.tbl tr,.tbl td{display:block}.tbl tr{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:10px;background:var(--chip)}.tbl td{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border:0;text-align:right}.tbl td::before{content:attr(data-l);color:var(--mut);font-size:12px;text-align:left}.tbl td.acts3{flex-wrap:wrap;justify-content:flex-start}.tbl td.acts3::before{display:none}.tbl tr.emp td{display:block;text-align:left}.tbl tr.emp td::before{display:none}}
+</style></head><body>
+<div class="app">
+<nav class="nav" aria-label="Main"><span class="brand">♻️ SMARTCLEAN AI</span><div class="nl"><button class="ni" data-p="dash" aria-current="page">🏠 Dashboard</button><button class="ni" data-p="bins" aria-current="false">🗑️ Bin Management</button><button class="ni" data-p="ai" aria-current="false">🧠 AI Predictions</button><button class="ni" data-p="routes" aria-current="false">🗺️ Routes</button><button class="ni" data-p="iot" aria-current="false">📡 IoT Monitoring</button></div><span class="sp"></span><span class="chip demo">Demo / Simulated IoT Data</span><button class="add" data-add>+ Add new bin</button></nav>
+<div class="main">
+<aside class="card rail" aria-label="Control panel">
+<header><h1>SMARTCLEAN AI</h1><p>Predictive waste collection. Every bin has wet and dry compartments.</p></header>
+<button class="tour" id="bTour">Play guided demo</button>
+<ol class="pipe" aria-label="Sense, Predict, Prioritize, Act"><li id="st0">Sense</li><li id="st1">Predict</li><li id="st2">Prioritize</li><li id="st3">Act</li></ol>
+<button class="pri live livebtn" id="bLive" aria-pressed="false">Start live simulation</button>
+<div class="acts"><button class="pri" id="bSense">Simulate IoT</button><button class="pri" id="bPred">Predict</button><button class="pri" id="bRoute">Plan route</button></div>
+<div class="acts2"><button class="ghost" id="bSurge">Event surge</button><button class="ghost" id="bOver">Overview</button><button class="ghost" id="bHw">Hardware</button></div>
+<label class="chk"><input type="checkbox" class="inc"> Include all bins in route</label>
+<div class="kpi"><div><b id="dBins">0</b>Bins monitored</div><div><b id="dTop">-</b>Route priority, first stop</div><div><b id="dWet">0</b>Wet waste, average fill</div><div><b id="dDry">0</b>Dry waste, average fill</div><div><b id="dCW">0</b>Critical wet compartments</div><div><b id="dCD">0</b>Critical dry compartments</div><div><b id="dKg">0</b>Total waste weight</div><div><b id="dPred">0</b>Collections predicted (2 h)</div><div><b id="dOn">0</b>Sensors online</div><div><b id="dAtt">0</b>Bins needing attention</div></div>
+<h2>Priority queue: bin and waste type</h2><ul id="queue"></ul>
+<h2>Collection route</h2><div id="routebox" style="font-size:13px;color:var(--mut)">Plan a route to see the stop order and watch the truck run it.</div>
+<h2>AI decision trace</h2><ul id="log" class="log"></ul>
+<p class="note">Demo / Simulated IoT data. No physical sensors are connected.</p>
+</aside>
+<div id="stage"><div id="cap" role="status"></div></div>
+<aside class="card insp" aria-label="Bin details" aria-live="polite">
+<div class="sbhead"><p class="sbt">BIN DETAILS</p><div class="ih"><h2 id="iId"></h2><span class="pill" id="iPill"></span></div><p class="mut" id="iMode"></p><p id="offN" class="warnbar" hidden>Sensor data unavailable. Values are the last known readings, not live data.</p></div>
+<div class="sbscroll"><p id="noBin" class="mut" hidden>Select a bin in the 3D view, or add a new bin.</p>
+<div id="ibody"><div class="cmp" style="--tc:var(--acc)"><b>LOCATION</b><p class="loc" id="iLoc"></p></div><div id="cmps"></div>
+<h3>History and 2-hour forecast</h3>
+<svg id="chart" viewBox="0 0 340 142" role="img" aria-label="Fill level and weight history with a two hour forecast for the selected bin"></svg>
+<div class="lg"><span style="color:var(--wet)">Wet</span><span style="color:var(--dry)">Dry</span><span>Solid: fill %</span><span>Dashed: weight</span><span>Dotted: forecast</span><span style="color:var(--crit)">85% line</span></div>
+<h3>Prototype sensor input (simulated)</h3>
+<div class="sl"><label>Wet ultrasonic fill <b id="lwf"></b><input id="swf" type="range" min="0" max="100" step="1"></label><label>Wet weight <b id="lww"></b><input id="sww" type="range" min="0" max="25" step="0.1"></label><label>Dry ultrasonic fill <b id="ldf"></b><input id="sdf" type="range" min="0" max="100" step="1"></label><label>Dry weight <b id="ldw"></b><input id="sdw" type="range" min="0" max="20" step="0.1"></label></div></div></div>
+<div class="sbact" id="sbact"><button class="pri" id="sEdit">✏️ Edit bin</button><a class="btn" id="sLoc" target="_blank" rel="noopener" href="#">📍 Open location</a><button class="ghost dng" id="sDel">🗑️ Delete bin</button></div>
+</aside>
+</div></div>
+<section class="pg" id="pg-bins" hidden aria-label="Bin management"><div class="pgh"><div><h2>Bin management</h2><p class="mut">Create, view, update and delete smart bins. Records are saved in this browser. Demo bins use simulated IoT data.</p></div><div class="pga"><button class="pri" data-add>+ Add new bin</button><button class="ghost" id="bReset">Restore demo data</button></div></div>
+<div class="flt"><input id="bq" type="search" placeholder="Search by bin ID, name, location or ward" aria-label="Search bins"><select id="bst" aria-label="Status filter"><option value="all">Status: all</option><option value="online">Online</option><option value="warning">Warning</option><option value="offline">Offline</option></select><select id="brk" aria-label="Risk filter"><option value="all">Risk: all</option><option value="0">Low</option><option value="1">Medium</option><option value="2">High</option><option value="3">Critical</option><option value="none">No data</option></select><select id="bwt" aria-label="Waste type used for the risk filter"><option value="both">Waste type: both</option><option value="wet">Wet</option><option value="dry">Dry</option></select></div>
+<p class="mut" id="bcount"></p><div class="tblw"><table class="tbl"><thead><tr><th>Bin ID</th><th>Name</th><th>Location</th><th>Wet fill</th><th>Dry fill</th><th>Wet weight</th><th>Dry weight</th><th>Overall risk</th><th>Sensor status</th><th>Actions</th></tr></thead><tbody id="bBody"></tbody></table></div></section>
+<section class="pg" id="pg-ai" hidden aria-label="AI predictions"><div class="pgh"><div><h2>AI predictions</h2><p class="mut">Every compartment of every reporting bin, ranked by priority. Select a row to see why.</p></div></div><div class="tblw"><table class="tbl"><thead><tr><th>Bin</th><th>Waste</th><th>Fill</th><th>Weight</th><th>Weight utilization</th><th>Growth</th><th>Predicted (2 h)</th><th>Risk</th><th>Priority</th><th>Action</th></tr></thead><tbody id="aBody"></tbody></table></div><div class="cmp" id="aWhy" style="--tc:var(--acc)"></div></section>
+<section class="pg" id="pg-routes" hidden aria-label="Routes"><div class="pgh"><div><h2>Routes</h2><p class="mut">Stops are bin plus waste type. Only compartments that need collection are included, unless you choose all bins.</p></div><div class="pga"><button class="pri" id="bRoute2">Plan route</button><button class="ghost" id="bDash">View in 3D</button></div></div><label class="chk"><input type="checkbox" class="inc"> Include all bins in route</label><div id="routebox2" class="rb">Plan a route to see the stop order.</div></section>
+<section class="pg" id="pg-iot" hidden aria-label="IoT monitoring"><div class="pgh"><div><h2>IoT monitoring</h2><p class="mut">Device and sensor status for every bin. All readings here are simulated. No hardware is connected.</p></div><div class="pga"><button class="pri" id="bSense2">Simulate IoT (selected bin)</button><button class="ghost livebtn" aria-pressed="false">Start live simulation</button></div></div><div class="tblw"><table class="tbl"><thead><tr><th>Bin</th><th>ESP32 device</th><th>Ultrasonic</th><th>Load cell</th><th>Data mode</th><th>Last reading</th></tr></thead><tbody id="iBody"></tbody></table></div><h3 class="h3">AI decision trace</h3><ul id="log2" class="log"></ul></section>
+<div id="fm" class="ov" role="dialog" aria-modal="true" aria-labelledby="fT" hidden><form class="ovc" id="fForm" novalidate><div class="ih"><h2 id="fT" style="font:700 22px system-ui;margin:0"></h2><button type="button" class="ghost x" data-close>Close</button></div><div id="fBody"></div><p class="er" id="fErr"></p><div class="fa"><button type="button" class="ghost" data-close>Cancel</button><button type="submit" class="pri" id="fSave">Save bin</button></div></form></div>
+<div id="dc" class="ov" role="alertdialog" aria-modal="true" aria-labelledby="dT" hidden><div class="ovc sm"><h2 id="dT" style="font:700 20px system-ui;margin:0 0 8px"></h2><p id="dM"></p><div class="fa"><button class="ghost" data-close>Cancel</button><button class="pri danger" id="dOk"></button></div></div></div>
+<div id="vw" class="ov" role="dialog" aria-modal="true" hidden><div class="ovc"><div id="vBody"></div></div></div>
+<div id="toast" role="status"></div>
+<div id="hw" class="ov" role="dialog" aria-modal="true" aria-labelledby="hwT" hidden><div class="ovc">
+<div class="ih"><h2 id="hwT" style="font:700 22px system-ui;margin:0">Hardware architecture</h2><button class="ghost" id="hwX" style="width:auto;padding:8px 14px">Close</button></div>
+<p class="mut">Proposed real implementation. This prototype simulates every sensor value in the browser. No ESP32, ultrasonic sensor or load cell is connected.</p>
+<p class="mut">Per bin: one ESP32. Per compartment: one ultrasonic sensor (such as HC-SR04) and one load cell with an HX711 amplifier.</p>
+<div class="ch2 w"><span>ESP32</span><em>→</em><span>Ultrasonic sensor</span><em>→</em><span>Wet waste fill level</span></div>
+<div class="ch2 w"><span>ESP32</span><em>→</em><span>Load cell + HX711</span><em>→</em><span>Wet waste weight</span></div>
+<div class="ch2 d"><span>ESP32</span><em>→</em><span>Ultrasonic sensor</span><em>→</em><span>Dry waste fill level</span></div>
+<div class="ch2 d"><span>ESP32</span><em>→</em><span>Load cell + HX711</span><em>→</em><span>Dry waste weight</span></div>
+<div class="ch2"><span>ESP32</span><em>→</em><span>Cloud / API</span><em>→</em><span>SMARTCLEAN AI</span><em>→</em><span>Prediction</span><em>→</em><span>Priority</span><em>→</em><span>Route</span><em>→</em><span>Operator</span></div>
+<p class="mut">Weight alone does not give the exact fill level, because waste density varies. SMARTCLEAN AI combines ultrasonic fill level, load-cell weight and historical growth rate. Priority = 0.35 × fill + 0.35 × weight + 0.30 × predicted fill. A compartment is flagged when fill or weight reaches 85%, or predicted fill reaches 90%.</p>
+</div></div>
+
+<script src="three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),root=document.documentElement,css=v=>getComputedStyle(root).getPropertyValue(v).trim();
+const LN=[-21,-15,-9,-3,3,9,15,21],D=[-21,15],FR={lat0:17.38,lat1:17.39,lng0:78.48,lng1:78.4934};
+const NAME=["Low","Medium","High","Critical"],CT=k=>k?"Dry":"Wet",esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mkC=(fill,w,cap,rate)=>{const wr=rate/100*cap*(.9+((fill+cap)%5)*.05);return{fill,w,cap,rate,wr,h:[0,1,2,3].map(i=>{const k=(4-i)*2,j=.85+((i*3+Math.round(fill))%7)*.05;return[Math.max(2,fill-rate*k*j),Math.max(.5,w-wr*k*j)]})}};
+const toXZ=(lat,lng)=>[-24+(lng-FR.lng0)/(FR.lng1-FR.lng0)*48,-24+(FR.lat1-lat)/(FR.lat1-FR.lat0)*48];
+const toLL=(x,z)=>[+(FR.lat1-(z+24)/48*(FR.lat1-FR.lat0)).toFixed(5),+(FR.lng0+(x+24)/48*(FR.lng1-FR.lng0)).toFixed(5)];
+const P={};
+// nearest free street intersection to a wanted position (schematic 3D placement)
+function free(want,skip){let best=null,bd=1e9;LN.forEach(x=>LN.forEach(z=>{if(x===D[0]&&z===D[1])return;if(Object.keys(P).some(k=>k!==skip&&P[k][0]===x&&P[k][1]===z))return;const d=Math.hypot(x-want[0],z-want[1]);if(d<bd){bd=d;best=[x,z]}}));return best}
+const DEMO=[["SC-104","Market Road Bin","Market Road","Ward 12",9,-9,82,21,4.2,54,9.2,2.1,"online"],["SC-072","Bus Stand Bin","Bus Stand","Ward 9",-9,-15,61,15.5,2.6,81,17.4,3.1,"online"],["SC-088","Main Road Bin","Main Road","Ward 5",15,3,67,18.2,2.4,44,7.9,1.6,"online"],["SC-021","Residential Area Bin","Residential Area","Ward 7",-15,3,58,14.1,3.8,66,12.6,1.9,"online"],["SC-115","College Road Bin","College Road","Ward 3",3,15,46,11.8,1.7,39,12.6,1.2,"online"],["SC-031","Park Area Bin","Park Area","Ward 4",-3,-3,38,9.9,2.1,29,5.1,1,"warning"]];
+const demo=()=>DEMO.map(r=>{const q=toLL(r[4],r[5]);return{id:r[0],name:r[1],location:r[2],exact:"Simulated demo location near "+r[2],lat:q[0],lng:q[1],ward:r[3],inst:"2026-01-15",status:r[12],sstat:r[12],ultra:1,wsens:1,esp:"ESP32-"+r[0].replace("-",""),demo:1,gx:r[4],gz:r[5],seen:Date.now(),c:[mkC(r[6],r[7],25,r[8]),mkC(r[9],r[10],20,r[11])]}});
+// persistence layer: swap load/save for fetch() calls to PostgreSQL / Firebase / MongoDB / an API later
+const Store={key:"smartclean.bins.v1",load(){try{const r=JSON.parse(localStorage.getItem(this.key));return Array.isArray(r)&&r.every(b=>b&&b.id&&Array.isArray(b.c)&&b.c.length===2&&typeof b.gx==="number")?r:null}catch(e){return null}},save(l){try{localStorage.setItem(this.key,JSON.stringify(l))}catch(e){}}};
+let B=Store.load()||demo();B.forEach(b=>{P[b.id]=[b.gx,b.gz]});
+const INITMAP=Object.fromEntries(demo().map(b=>[b.id,b.c.map(c=>({fill:c.fill,w:c.w}))]));
+const RANK={online:0,warning:1,offline:2},stat=b=>["online","warning","offline"][Math.max(RANK[b.status]||0,RANK[b.sstat]||0)],isLive=b=>stat(b)!=="offline"&&!!(b.ultra||b.wsens);
+const sync=b=>b.c.forEach(c=>{if(!b.ultra&&b.wsens)c.fill=Math.min(100,c.w/c.cap*100);else if(!b.wsens&&b.ultra)c.w=Math.min(c.cap,c.fill/100*c.cap)});
+const an=c=>{const wp=Math.min(100,c.w/c.cap*100),cur=(c.fill+wp)/2,g=(c.rate+c.wr/c.cap*100)/2,pred=Math.min(100,cur+g*2),pri=Math.round(.35*c.fill+.35*wp+.3*pred),rule=c.fill>=85||wp>=85||pred>=90;return{wp,cur,g,pred,pri,rule,l:pri>=80?3:(rule||pri>=65)?2:pri>=45?1:0}};
+const all=()=>B.flatMap(b=>b.c.map((c,k)=>({b,c,k,a:an(c),ok:isLive(b)}))),get=id=>B.find(b=>b.id===id),worst=b=>Math.max(...b.c.map(c=>an(c).l)),fmt=x=>x.toFixed(1);
+let sel=(get("SC-104")||B[0]||{}).id||null,sig=["#2c9a72","#d9a521","#e4761b","#d2382f"],idle=performance.now();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+// ---------- scene ----------
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.05;R.shadowMap.type=THREE.PCFSoftShadowMap;$("stage").appendChild(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color();S.fog=new THREE.Fog(0xffffff,70,150);
+const C=new THREE.PerspectiveCamera(38,1,.5,300);
+const hemi=new THREE.HemisphereLight(0xffffff,0x8899aa,.95);S.add(hemi);
+const sun=new THREE.DirectionalLight(0xffffff,.9);sun.position.set(-22,38,18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,near:1,far:120});sun.shadow.bias=-.0004;S.add(sun);
+let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const mk=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.9},o)),mGr=mk(0),mIn=mk(0),mSw=mk(0),mRt=new THREE.MeshBasicMaterial(),mLamp=new THREE.MeshBasicMaterial();
+function cv2(w,h,fn){const c=document.createElement("canvas");c.width=w;c.height=h;fn(c.getContext("2d"),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
+function roadTex(hz){return cv2(hz?256:128,hz?128:256,(g,w,h)=>{g.fillStyle="#3b4046";g.fillRect(0,0,w,h);
+ for(let i=0;i<600;i++){g.fillStyle=rnd()>.5?"rgba(255,255,255,.05)":"rgba(0,0,0,.09)";g.fillRect(rnd()*w,rnd()*h,2,2)}
+ const L=(x,y,a,b)=>hz?g.fillRect(y,x,b,a):g.fillRect(x,y,a,b);g.fillStyle="#d9d9d2";L(8,0,3,256);L(117,0,3,256);g.fillStyle="#e9d98a";for(let y=20;y<256;y+=128)L(62,y,4,50)})}
+const KIND=[["#9a5a46","#26343f"],["#bdb9ae","#3a4854"],["#c9b58f","#34424d"],["#5d7688","#1f3446"],["#4c5560","#22303b"]];
+const mB=KIND.map(([w,gl])=>{const lit=Array.from({length:16},()=>rnd()<.45),xy=i=>[8+(i%4)*30,8+(i>>2)*30];
+ const map=cv2(128,128,g=>{g.fillStyle=w;g.fillRect(0,0,128,128);g.fillStyle="rgba(0,0,0,.14)";for(let i=0;i<4;i++)g.fillRect(0,i*32+1,128,3);g.fillStyle=gl;lit.forEach((_,i)=>g.fillRect(...xy(i),18,20));g.fillStyle="rgba(255,255,255,.12)";lit.forEach((_,i)=>g.fillRect(...xy(i),18,5))}),
+ em=cv2(128,128,g=>{g.fillStyle="#000";g.fillRect(0,0,128,128);g.fillStyle="#ffd98a";lit.forEach((l,i)=>{if(l)g.fillRect(...xy(i),18,20)})});
+ return mk(0xffffff,{map,emissiveMap:em,emissive:0xffffff,emissiveIntensity:0,roughness:.7})});
+const gr=new THREE.Mesh(new THREE.PlaneGeometry(240,240),mGr);gr.rotation.x=-Math.PI/2;gr.receiveShadow=true;S.add(gr);
+const tV=roadTex(0),tH=roadTex(1);tV.repeat.set(1,13.2);tH.repeat.set(13.2,1);const mRV=mk(0xffffff,{map:tV}),mRH=mk(0xffffff,{map:tH});
+const fl=(g,m,x,y,z)=>{const e=new THREE.Mesh(g,m);e.rotation.x=-Math.PI/2;e.position.set(x,y,z);e.receiveShadow=true;S.add(e)};
+
+LN.forEach(c=>{fl(new THREE.PlaneGeometry(2.2,58),mRV,c,.01,0);fl(new THREE.PlaneGeometry(58,2.2),mRH,0,.012,c);LN.forEach(l=>fl(new THREE.PlaneGeometry(2.2,2.2),mIn,c,.02,l))});
+const mRoof=mk(0x59616a),mUnit=mk(0x8a929a),mTrunk=mk(0x5b4636),mLeaf=[mk(0x3f7d4a),mk(0x4d8f4f),mk(0x336b43)],pole=mk(0x2b3238,{metalness:.4});
+const add=(g,m,x,y,z,sh=1)=>{const e=new THREE.Mesh(g,m);e.position.set(x,y,z);e.castShadow=!!sh;e.receiveShadow=true;S.add(e);return e};
+for(let x=-24;x<=24;x+=6)for(let z=-24;z<=24;z+=6){add(new THREE.BoxGeometry(4,.12,4),mSw,x,.06,z,0);
+ const h=1.5+rnd()*3.5+Math.max(0,1-Math.hypot(x,z)/34)*7,g=new THREE.BoxGeometry(3.4,h,3.4),uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setY(i,uv.getY(i)*h/3.4);
+ add(g,mB[Math.floor(rnd()*5)],x,.12+h/2,z);add(new THREE.BoxGeometry(3.6,.12,3.6),mRoof,x,.18+h,z);
+ if(rnd()<.6)add(new THREE.BoxGeometry(.9,.45,.9),mUnit,x+(rnd()-.5)*1.6,.4+h,z+(rnd()-.5)*1.6)}
+const lampG=new THREE.CylinderGeometry(.05,.07,3.2,8),bulbG=new THREE.SphereGeometry(.16,10,8),trG=new THREE.CylinderGeometry(.1,.14,.9,8),lfG=new THREE.IcosahedronGeometry(.7,1);
+LN.forEach(ix=>LN.forEach(iz=>{if(rnd()<.4){add(lampG,pole,ix-1.15,1.7,iz-1.15);add(bulbG,mLamp,ix-1.15,3.35,iz-1.15,0)}
+ if(rnd()<.35){add(trG,mTrunk,ix+1.15,.6,iz-1.15);add(lfG,mLeaf[Math.floor(rnd()*3)],ix+1.15,1.65,iz-1.15)}}));
+const cc=[0xc0392b,0x2c5aa0,0xe9e9e9,0x1e1e1e,0xd4a017,0x6b7b8c],carB=new THREE.BoxGeometry(1.3,.32,.6),carC=new THREE.BoxGeometry(.7,.26,.5),mGl=mk(0x1b2a36,{roughness:.1,metalness:.5});
+for(let i=0;i<16;i++){const c=LN[Math.floor(rnd()*8)],m=6*Math.floor(rnd()*9)-24,s=rnd()<.5?-.85:.85,vz=rnd()<.5,g=new THREE.Group(),b=new THREE.Mesh(carB,mk(cc[Math.floor(rnd()*6)],{roughness:.4,metalness:.3})),t=new THREE.Mesh(carC,mGl);
+ b.position.y=.3;t.position.set(-.05,.6,0);b.castShadow=t.castShadow=true;g.add(b,t);g.position.set(vz?c+s:m,0,vz?m:c+s);g.rotation.y=vz?Math.PI/2:0;S.add(g)}
+// depot
+const dep=new THREE.Mesh(new THREE.BoxGeometry(3.6,.3,3.6),new THREE.MeshStandardMaterial({color:0x0b5d5b}));dep.position.set(D[0],.15,D[1]);dep.receiveShadow=true;S.add(dep);
+const shed=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.5,2.4),new THREE.MeshStandardMaterial({color:0xf1f4f5}));shed.position.set(D[0],1.05,D[1]);shed.castShadow=true;S.add(shed);
+// bins
+const O={},pick=[],cyl=(r,h,s=28)=>new THREE.CylinderGeometry(r,r,h,s),steel=mk(0x33413a,{roughness:.5,metalness:.3}),dk=mk(0x1f2a26,{roughness:.6}),WC=[0x2f9e5a,0x3b6fd4];
+function add3D(b){const g=new THREE.Group();g.position.set(P[b.id][0],0,P[b.id][1]);
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(.7,.62,2.5,32),steel.clone());body.position.y=1.37;body.castShadow=true;body.userData.id=b.id;pick.push(body);
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(.72,.05,10,36),dk);rim.rotation.x=Math.PI/2;rim.position.y=2.62;
+ const base=new THREE.Mesh(cyl(.72,.12),dk);base.position.y=.06;
+ const div=new THREE.Mesh(new THREE.BoxGeometry(.05,2.5,1.46),dk);div.position.y=1.37;
+ const lids=[0,1].map(k=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.76,28,12,k*Math.PI,Math.PI,0,Math.PI/2),new THREE.MeshStandardMaterial({color:WC[k],roughness:.5,side:THREE.DoubleSide}));m.position.y=2.62;m.scale.y=.55;m.rotation.y=Math.PI/2;return m});
+ const puck=new THREE.Mesh(cyl(.2,.1,20),new THREE.MeshBasicMaterial({color:0x2ee6c8}));puck.position.y=3.06;
+ const fills=[0,1].map(k=>new THREE.Mesh(new THREE.CylinderGeometry(.745,.745,1,24,1,false,k*Math.PI,Math.PI),new THREE.MeshStandardMaterial({roughness:.3,emissiveIntensity:.5,transparent:true,opacity:.85})));
+ const ring=new THREE.Mesh(new THREE.RingGeometry(1.2,1.5,40),new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;
+ const hl=new THREE.Mesh(new THREE.RingGeometry(1.65,1.95,48),mRt);hl.rotation.x=-Math.PI/2;hl.position.y=.05;hl.visible=false;g.add(body,rim,base,div,...lids,puck,...fills,ring,hl);S.add(g);
+ const tag=document.createElement("div");tag.className="tag";tag.innerHTML='<i class="dot"></i><b></b><span class="tw"></span><span class="td"></span>';tag.children[1].textContent=b.id;tag.onclick=()=>select(b.id);$("stage").appendChild(tag);
+ O[b.id]={g,hl,body,fw:fills[0],fd:fills[1],ring,tag,l:0}}
+function rm3D(id){const o=O[id];if(!o)return;S.remove(o.g);o.tag.remove();pick.splice(pick.indexOf(o.body),1);delete O[id]}
+B.forEach(add3D);
+const dtag=document.createElement("div");dtag.className="tag dp";dtag.innerHTML="<b>Depot</b>";$("stage").appendChild(dtag);
+// truck + route
+const truck=new THREE.Group(),tm=(c,o)=>mk(c,Object.assign({roughness:.5},o)),green=tm(0x1f7a5c),white=tm(0xf2f4f5),blk=tm(0x15191d);
+const part=(g,m,x,y,z)=>{const e=new THREE.Mesh(g,m);e.position.set(x,y,z);e.castShadow=true;truck.add(e);return e};
+part(new THREE.BoxGeometry(2.4,.25,1),blk,-.2,.45,0);part(new THREE.BoxGeometry(.9,.95,1),white,1.2,1,0);part(new THREE.BoxGeometry(.05,.4,.85),mGl,1.66,1.2,0);
+part(new THREE.BoxGeometry(1.9,1.15,1),green,-.4,1.15,0);part(new THREE.BoxGeometry(.3,1.25,1.02),blk,-1.45,1.15,0);part(new THREE.BoxGeometry(1.9,.08,1.06),white,-.4,1.76,0);
+part(new THREE.CylinderGeometry(.07,.07,.1,12),new THREE.MeshBasicMaterial({color:0xffa726}),1.2,1.53,0);
+[1.2,.1,-1].forEach(x=>[.5,-.5].forEach(z=>{const w=part(cyl(.3,.18,16),blk,x,.3,z);w.rotation.x=Math.PI/2}));
+const sm=new THREE.MeshBasicMaterial({map:cv2(256,64,g=>{g.fillStyle="#fff";g.font="bold 36px sans-serif";g.textAlign="center";g.fillText("SMARTCLEAN",128,46)}),transparent:true});
+part(new THREE.PlaneGeometry(1.6,.4),sm,-.4,1.15,.505);part(new THREE.PlaneGeometry(1.6,.4),sm,-.4,1.15,-.505).rotation.y=Math.PI;
+truck.visible=false;S.add(truck);
+const rg=new THREE.Group();S.add(rg);let pts=[],cum=[],stops=[],stopAt=[],done=[],dist=0,len=0,run=false,RT=[],IMP="";
+const clearRoute=()=>{while(rg.children.length)rg.remove(rg.children[0])};
+const d1=(a,b)=>Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]),rl=ids=>{let c=D,t=0;ids.forEach(id=>{t+=d1(c,P[id]);c=P[id]});return t+d1(c,D)};
+let incAll=false;const need=x=>x.ok&&(incAll||x.a.l>=2||x.a.pri>=60);const RB=h=>{$("routebox").innerHTML=h;$("routebox2").innerHTML=h};
+function impact(n){const base=rl(B.map(b=>b.id)),sv=Math.max(0,base-len),pc=Math.round(sv/base*100),lit=sv*.1*.4,co2=lit*2.68,tot=B.length*2;IMP=pc+"% shorter than a fixed round";
+ return `<div class="imp"><b>${pc}% shorter</b> than a fixed round that visits all ${B.length} bins<br>${n} of ${tot} compartments collected, ${tot-n} skipped. About ${lit.toFixed(1)} L fuel and ${co2.toFixed(1)} kg CO₂ saved per run<small>Estimate: 1 block = 100 m, 0.4 L/km, 2.68 kg CO₂ per litre of diesel. Simulated district.</small></div>`}
+function plan(go=true){clearRoute();done=[];dist=0;
+ if(go){flash(2);setTimeout(()=>flash(3),600)}
+ const list=all().filter(need);
+ if(!list.length){run=false;truck.visible=false;stops=[];RT=[];RB("No compartment needs collection right now.");if(go)log("Route: no compartment above the collection threshold");render();return}
+ const g={};list.forEach(x=>{(g[x.b.id]=g[x.b.id]||{id:x.b.id,cs:[],l:0}).cs.push(x)});
+ const vs=Object.values(g);vs.forEach(v=>{v.cs.sort((a,b)=>b.a.pri-a.a.pri);v.l=Math.max(...v.cs.map(x=>x.a.l))});
+ let cur=D;const ord=[];[vs.filter(v=>v.l===3),vs.filter(v=>v.l<3)].forEach(t=>{while(t.length){t.sort((a,b)=>d1(cur,P[a.id])-d1(cur,P[b.id]));const n=t.shift();ord.push(n);cur=P[n.id]}});
+ RT=ord;stops=ord.map(v=>v.id);pts=[D];cur=D;stopAt=[];
+ const push=p=>{const l=pts[pts.length-1];if(l[0]!==p[0]||l[1]!==p[1])pts.push(p)};
+ ord.forEach(v=>{const b=P[v.id];if(cur[0]!==b[0]&&cur[1]!==b[1])push([b[0],cur[1]]);push(b);cur=b;stopAt.push(pts.length-1)});
+ if(cur[0]!==D[0]&&cur[1]!==D[1])push([D[0],cur[1]]);push(D);
+ cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+d1(pts[i],pts[i-1]));len=cum[cum.length-1];stopAt=stopAt.map(i=>cum[i]);
+ for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],h=a[1]===b[1],l=Math.abs(b[0]-a[0]+b[1]-a[1]);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(h?l+.44:.44,.05,h?.44:l+.44),mRt);m.position.set((a[0]+b[0])/2,.07,(a[1]+b[1])/2);rg.add(m)}
+ run=go;truck.visible=go;let n=0;
+ RB('<div class="rt"><i>D</i>Depot, start</div>'+ord.map(v=>v.cs.map(x=>`<div class="rt" id="r_${v.id}_${x.k}"><i>${++n}</i><b>${v.id}</b> · ${CT(x.k).toUpperCase()} · priority ${x.a.pri}</div>`).join("")).join("")+`<div class="rt"><i>D</i>Depot, return · ${len} blocks</div>`+impact(list.length));
+ if(go)log(`Route planned: ${list.length} compartments at ${ord.length} bins<br>Critical bins first, then shortest path`);
+ render()}
+function place(d){let i=1;while(i<cum.length-1&&cum[i]<d)i++;const a=pts[i-1],b=pts[i],t=(d-cum[i-1])/((cum[i]-cum[i-1])||1);
+ truck.position.set(a[0]+(b[0]-a[0])*t,0,a[1]+(b[1]-a[1])*t);truck.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0])}
+function collect(i){const v=RT[i];v.cs.forEach(x=>{x.c.fill=3;x.c.w=Math.max(.6,x.c.cap*.03);const e=$("r_"+v.id+"_"+x.k);if(e)e.classList.add("done")});
+ log("Collected at <b>"+v.id+"</b>: "+v.cs.map(x=>CT(x.k)+" (priority "+x.a.pri+")").join(", ")+"<br>Compartment levels reset");render()}
+// ---------- theme ----------
+const TH={l:{top:"#7fb0e0",bot:"#dbe7ef",gr:0xa9b0ad,rd:0xffffff,in:0x3b4046,sw:0xd3d2cb,n:0},d:{top:"#060c13",bot:"#182a3a",gr:0x131c23,rd:0x8a8f95,in:0x1f252a,sw:0x38434d,n:1}};
+function sky(a,b){const t=cv2(2,256,(g,w,h)=>{const q=g.createLinearGradient(0,0,0,h);q.addColorStop(0,a);q.addColorStop(1,b);g.fillStyle=q;g.fillRect(0,0,w,h)});t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;return t}
+function theme(){const t=root.dataset.theme,dk=t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches,k=dk?TH.d:TH.l;
+ S.background=sky(k.top,k.bot);S.fog.color.set(k.bot);mGr.color.set(k.gr);mRV.color.set(k.rd);mRH.color.set(k.rd);mIn.color.set(k.in);mSw.color.set(k.sw);
+ mB.forEach(m=>m.emissiveIntensity=k.n);mLamp.color.set(dk?0xffe2a0:0x9aa5ad);hemi.intensity=dk?.55:.9;sun.intensity=dk?.4:1;sun.color.set(dk?0x9db8ff:0xfff0d8);
+ sig=["--ok","--watch","--high","--crit"].map(css);mRt.color.set(css("--acc"));render()}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",theme);new MutationObserver(theme).observe(root,{attributes:true,attributeFilter:["data-theme"]});
+// ---------- UI ----------
+let curPage="dash",sv=null,liveT=null,aiSel=null;
+const persist=()=>{clearTimeout(sv);sv=setTimeout(()=>Store.save(B),250)};
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(t._t);t._t=setTimeout(()=>{t.style.display="none"},2800)}
+const LG=[];function log(s){LG.unshift(new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"<br>"+s);LG.length=Math.min(LG.length,8);const h=LG.map(x=>`<li>${x}</li>`).join("");$("log").innerHTML=h;$("log2").innerHTML=h}
+function flash(i){const e=$("st"+i);e.classList.add("on");setTimeout(()=>e.classList.remove("on"),1400)}
+const setPill=(el,l,ok=true)=>{el.textContent=ok?NAME[l]+" risk":"No data";el.style.background=ok?sig[l]:"#6b7782";el.style.color=ok&&l===1?"#16222e":"#fff"};
+const ICON={online:"🟢",warning:"🟡",offline:"🔴"},ACTS=["No action needed","Monitor","Collect soon","Collect now"],up=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const hasLL=b=>b.lat!=null&&b.lng!=null&&b.lat!==""&&b.lng!==""&&!isNaN(+b.lat)&&!isNaN(+b.lng);
+const mapURL=b=>hasLL(b)?`https://www.openstreetmap.org/?mlat=${b.lat}&mlon=${b.lng}#map=18/${b.lat}/${b.lng}`:"https://www.openstreetmap.org/search?query="+encodeURIComponent(b.exact||b.location);
+const modeText=b=>!isLive(b)?"Sensor data unavailable":b.demo?"Demo / Simulated IoT data":"Simulated sensor data";
+const locHTML=b=>`<b>📍 ${esc(b.location)}</b>${b.ward?" · "+esc(b.ward):""}<br>${hasLL(b)?`Latitude: ${b.lat}<br>Longitude: ${b.lng}`:"Address: "+esc(b.exact)}${hasLL(b)&&b.exact?"<br>"+esc(b.exact):""}`;
+const EM=["🟢","🟡","🟠","🔴"],recText=(k,l)=>[`No action needed for ${CT(k).toLowerCase()} waste.`,`Monitor ${CT(k).toLowerCase()} waste.`,`Collect ${CT(k).toLowerCase()} waste soon.`,`Collect ${CT(k).toLowerCase()} waste now.`][l];
+function cmpHTML(k){const p="wd"[k];return `<section class="cmp" style="--tc:var(--${k?"dry":"wet"})"><div class="ch"><b>${k?"🔵 DRY":"🟢 WET"} WASTE</b><span class="pill" id="${p}pill"></span></div><div class="pb"><u id="${p}bar"></u></div><dl><dt>Current fill (ultrasonic)</dt><dd id="${p}f"></dd><dt>Weight</dt><dd id="${p}wt"></dd><dt>Weight utilization</dt><dd id="${p}wu"></dd><dt>Growth rate</dt><dd id="${p}g"></dd><dt>Predicted in 2 hours</dt><dd id="${p}pr"></dd><dt>Collection priority</dt><dd id="${p}pri"></dd><dt>Risk</dt><dd id="${p}rk"></dd></dl><p class="rec" id="${p}rec"></p><details><summary>Why this recommendation</summary><p class="why" id="${p}why"></p></details></section>`}
+$("cmps").innerHTML=cmpHTML(0)+cmpHTML(1);
+function why(b,k,a){const c=b.c[k],t=CT(k).toLowerCase(),head=["is within safe limits","is filling steadily","is approaching critical capacity","has reached critical capacity"][a.l],
+ rec=["No action needed for "+t+" waste.","Monitor "+t+" waste. No visit needed yet.","Collect "+t+" waste soon.","Collect "+t+" waste now."][a.l],
+ dis=Math.abs(c.fill-a.wp)>20?` Ultrasonic fill (${Math.round(c.fill)}%) and weight (${Math.round(a.wp)}%) disagree. That is normal when waste density varies, so both are blended.`:"";
+ return `${b.id} ${t} compartment ${head}. Physical fill ${Math.round(c.fill)}%, weight utilization ${Math.round(a.wp)}% (${fmt(c.w)} of ${c.cap} kg), growth +${fmt(a.g)}%/hour, predicted ${Math.round(a.pred)}% in 2 hours. Priority ${a.pri}/100 = 0.35 fill + 0.35 weight + 0.30 prediction.${dis} Recommendation: ${rec}`}
+function chart(b){const x0=34,x1=298,y0=12,y1=116,X=i=>x0+i/5*(x1-x0),Y=v=>y1-Math.min(100,v)/100*(y1-y0),YW=v=>y1-Math.min(30,v)/30*(y1-y0);
+ const tl=i=>i<5?new Date(Date.now()-(4-i)*7200000).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"+2 h";
+ const ln=(v,fc,Yf,col,dash)=>{const p=v.map((y,i)=>[X(i),Yf(y)]),d=p.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join("");
+  return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.2"${dash?' stroke-dasharray="5 3"':""} stroke-linecap="round" stroke-linejoin="round"/><path d="M${p[4][0].toFixed(1)} ${p[4][1].toFixed(1)}L${X(5).toFixed(1)} ${Yf(fc).toFixed(1)}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="1.5 3.5" stroke-linecap="round"/>`};
+ let s="";[0,50,100].forEach(v=>{s+=`<line x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${x0-4}" y="${Y(v)+3}" font-size="9" text-anchor="end" fill="var(--mut)">${v}%</text><text x="${x1+4}" y="${Y(v)+3}" font-size="9" fill="var(--mut)">${v*.3} kg</text>`});
+ s+=`<line x1="${x0}" x2="${x1}" y1="${Y(85)}" y2="${Y(85)}" stroke="var(--crit)" stroke-dasharray="3 3" opacity=".6"/>`;
+ [0,2,4,5].forEach(i=>{s+=`<text x="${X(i)}" y="134" font-size="9" text-anchor="middle" fill="var(--mut)">${tl(i)}</text>`});
+ b.c.forEach((c,k)=>{const a=an(c),col=k?"var(--dry)":"var(--wet)";s+=ln(c.h.map(p=>p[0]).concat(c.fill),a.pred,Y,col,0)+ln(c.h.map(p=>p[1]).concat(c.w),Math.min(c.cap,c.w+c.wr*2),YW,col,1)});
+ return s}
+function render(){
+ const L=all().filter(x=>x.ok),top=L.slice().sort((a,b)=>b.a.pri-a.a.pri),lv=B.filter(isLive);
+ $("queue").innerHTML=top.length?top.slice(0,6).map(x=>`<li><button class="qr${x.b.id===sel?" sel":""}" data-id="${x.b.id}"><i class="dot" style="background:${sig[x.a.l]}"></i><b>${x.b.id} · ${CT(x.k)}</b><span class="mu">${Math.round(x.c.fill)}% · ${fmt(x.c.w)} kg</span><span class="sc">${x.a.pri}</span><i class="bar"><u style="width:${x.a.pri}%;background:${sig[x.a.l]}"></u></i></button></li>`).join(""):'<li class="mut">No bins are reporting data. Add a bin or bring a sensor online.</li>';
+ const avg=k=>lv.length?Math.round(lv.reduce((s,b)=>s+b.c[k].fill,0)/lv.length)+"%":"-",cr=k=>L.filter(x=>x.k===k&&x.a.l===3).length,kg=L.reduce((s,x)=>s+x.c.w,0),on=B.filter(b=>stat(b)==="online").length;
+ $("dBins").textContent=B.length;$("dWet").textContent=avg(0);$("dDry").textContent=avg(1);$("dCW").textContent=cr(0);$("dCD").textContent=cr(1);
+ $("dKg").textContent=kg>=1000?fmt(kg/1000)+" t":Math.round(kg)+" kg";$("dPred").textContent=L.filter(x=>x.a.l>=2||x.a.pred>=85).length;$("dTop").textContent=top.length?top[0].b.id+" "+CT(top[0].k):"-";$("dOn").textContent=on+" / "+B.length;$("dAtt").textContent=B.length-on;
+ const b=get(sel);$("ibody").hidden=!b;$("sbact").hidden=!b;$("noBin").hidden=!!b;$("iPill").style.display=b?"":"none";$("iMode").textContent="";$("iLoc").textContent="";$("offN").hidden=true;
+ if(b){const ok=isLive(b),A=b.c.map(an);$("iId").textContent="Smart bin "+b.id;const wl=Math.max(...A.map(a=>a.l));setPill($("iPill"),wl,ok);$("iPill").textContent=ok?EM[wl]+" "+NAME[wl]+" risk":"⚪ No data";$("sLoc").href=mapURL(b);$("offN").hidden=ok;$("iMode").textContent=modeText(b);$("iLoc").innerHTML=locHTML(b);
+  b.c.forEach((c,k)=>{const p="wd"[k],a=A[k];setPill($(p+"pill"),a.l,ok);$(p+"bar").style.width=c.fill+"%";$(p+"bar").style.background=ok?sig[a.l]:"#6b7782";
+   $(p+"f").textContent=Math.round(c.fill)+"%";$(p+"wt").textContent=fmt(c.w)+" / "+c.cap+" kg";$(p+"wu").textContent=Math.round(a.wp)+"%";$(p+"g").textContent="+"+fmt(a.g)+"% / hour";$(p+"pr").textContent=Math.round(a.pred)+"%";$(p+"pri").textContent=a.pri+" / 100";$(p+"why").textContent=why(b,k,a);$(p+"rk").textContent=ok?NAME[a.l].toUpperCase():"NO DATA";$(p+"rec").innerHTML="<b>Recommendation:</b> "+(ok?recText(k,a.l):"Sensor data unavailable.")});
+  [["swf",0,"fill",0],["sww",0,"w",1],["sdf",1,"fill",0],["sdw",1,"w",1]].forEach(([id,k,key,d])=>{const v=b.c[k][key],e=$(id);e.max=key==="w"?b.c[k].cap:100;e.disabled=!ok;if(document.activeElement!==e)e.value=v;$("l"+id.slice(1)).textContent=d?fmt(v)+" kg":Math.round(v)+"%"});
+  $("chart").innerHTML=chart(b)}else{$("iId").textContent="No bin selected"}
+ B.forEach(bn=>{const o=O[bn.id];if(!o)return;const ok=isLive(bn),w=ok?worst(bn):-1,gc="#8a949c";o.l=w;
+  bn.c.forEach((c,k)=>{const a=an(c),col=ok?sig[a.l]:gc,h=Math.max(.04,c.fill/100*2.4),m=k?o.fd:o.fw;m.scale.y=h;m.position.y=.12+h/2;m.material.color.set(col);m.material.emissive.set(col)});
+  const rc=ok?sig[w]:gc;o.ring.material.color.set(rc);o.body.material.emissive.setHex(bn.id===sel?0x1c4a3c:0);o.hl.visible=bn.id===sel;
+  o.tag.children[0].style.background=rc;o.tag.querySelector(".tw").textContent=ok?"W "+Math.round(bn.c[0].fill)+"%":"no data";o.tag.querySelector(".td").textContent=ok?"D "+Math.round(bn.c[1].fill)+"%":"";o.tag.classList.toggle("sel",bn.id===sel)});
+ persist();if(curPage!=="dash")renderPage()}
+// camera
+let th=.75,ph=1,rad=46,rad2=46;const tg=new THREE.Vector3(),tg2=new THREE.Vector3(),clamp=v=>Math.max(14,Math.min(70,v));
+function select(id){if(!get(id))return;sel=id;tg2.set(P[id][0],.8,P[id][1]);rad2=28;idle=performance.now();if(curPage!=="dash")showPage("dash");render()}
+$("bOver").onclick=()=>{tg2.set(0,0,0);rad2=46;idle=performance.now()};
+$("queue").onclick=e=>{const x=e.target.closest("[data-id]");if(x)select(x.dataset.id)};
+[["swf",0,"fill"],["sww",0,"w"],["sdf",1,"fill"],["sdw",1,"w"]].forEach(([id,k,key])=>{$(id).oninput=e=>{const b=get(sel);if(!b)return;b.c[k][key]=+e.target.value;sync(b);render()};$(id).onchange=()=>{log("Prototype sensor input changed<br><b>"+sel+"</b> "+CT(k).toLowerCase()+" "+(key==="w"?"weight":"ultrasonic fill")+"<br>AI prediction updated.");flash(1);setTimeout(()=>flash(2),450)}});
+$("bSense").onclick=()=>{const b=get(sel);if(!b){toast("Add a bin first");return}
+ if(!isLive(b)){log(`Sensor data unavailable for <b>${b.id}</b>. Simulation skipped.`);toast("Sensor data unavailable for "+b.id);return}
+ const bf=b.c.map(c=>[c.fill,c.w]);
+ b.c.forEach((c,k)=>{const df=1+Math.floor(Math.random()*(k?3:4));c.fill=Math.min(100,c.fill+df);c.w=Math.min(c.cap,c.w+c.cap*df/100*(.6+.8*Math.random()))});sync(b);b.seen=Date.now();
+ log(`IoT packet received (simulated)<br><b>${b.id}</b><br>Wet ultrasonic: ${Math.round(bf[0][0])}% → ${Math.round(b.c[0].fill)}%<br>Wet weight: ${fmt(bf[0][1])} → ${fmt(b.c[0].w)} kg<br>Dry ultrasonic: ${Math.round(bf[1][0])}% → ${Math.round(b.c[1].fill)}%<br>Dry weight: ${fmt(bf[1][1])} → ${fmt(b.c[1].w)} kg<br>AI prediction updated.`);
+ flash(0);setTimeout(()=>flash(1),450);setTimeout(()=>flash(2),900);render();if(!run&&stops.length)plan(false)};
+$("bPred").onclick=()=>{const b=get(sel);if(!b){toast("Add a bin first");return}flash(1);setTimeout(()=>flash(2),450);
+ log(`AI prediction for <b>${b.id}</b><br>`+b.c.map((c,k)=>{const a=an(c);return `${CT(k)}: fill ${Math.round(c.fill)}%, weight ${Math.round(a.wp)}%, predicted ${Math.round(a.pred)}%, priority ${a.pri}, ${NAME[a.l].toLowerCase()} risk`}).join("<br>"));render()};
+$("bRoute").onclick=()=>plan(true);
+$("bSurge").onclick=()=>{const r=all().filter(x=>x.ok).sort(()=>Math.random()-.5).slice(0,3);if(!r.length){toast("No bins are reporting data");return}
+ r.forEach(({c})=>{c.fill=Math.min(100,c.fill+18);c.w=Math.min(c.cap,c.w+c.cap*.16)});B.forEach(sync);
+ log("Event surge (simulated)<br>"+r.map(x=>x.b.id+" "+CT(x.k).toLowerCase()).join(", ")+" rose by about 18%");flash(0);setTimeout(()=>flash(1),450);render();if(!run&&stops.length)plan(false)};
+function tick(){const L=all().filter(x=>x.ok);if(!L.length)return;L.forEach(({b,c})=>{const r=.4*(.5+Math.random());c.fill=Math.min(100,c.fill+c.rate*r);c.w=Math.min(c.cap,c.w+c.wr*r*(.8+.4*Math.random()));b.seen=Date.now()});B.forEach(sync);
+ const r=L[Math.floor(Math.random()*L.length)];log(`IoT packet received (simulated)<br><b>${r.b.id}</b> ${CT(r.k).toLowerCase()}: ultrasonic ${Math.round(r.c.fill)}%, weight ${fmt(r.c.w)} kg<br>AI prediction updated.`);
+ flash(0);setTimeout(()=>flash(1),350);setTimeout(()=>flash(2),700);render();setTimeout(()=>{if(liveT&&!run){plan(false);flash(3)}},1050)}
+function setLive(on){clearInterval(liveT);liveT=on?setInterval(tick,2400):null;document.querySelectorAll(".livebtn").forEach(x=>{x.setAttribute("aria-pressed",!!on);x.textContent=on?"Stop live simulation":"Start live simulation"})}
+document.querySelectorAll(".livebtn").forEach(x=>x.onclick=()=>setLive(!liveT));
+$("bSense2").onclick=()=>$("bSense").click();$("bRoute2").onclick=()=>plan(true);$("bDash").onclick=()=>showPage("dash");
+document.querySelectorAll(".inc").forEach(x=>x.onchange=e=>{incAll=e.target.checked;document.querySelectorAll(".inc").forEach(y=>y.checked=incAll);if(stops.length&&!run)plan(false)});
+$("bHw").onclick=()=>{$("hw").hidden=false;$("hwX").focus()};$("hwX").onclick=()=>{$("hw").hidden=true};
+document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.hidden=true}));document.querySelectorAll("[data-close]").forEach(x=>x.onclick=()=>{x.closest(".ov").hidden=true});
+addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ov").forEach(o=>o.hidden=true)});
+let TT=[],touring=false;
+function cap(t){const c=$("cap");c.textContent=t;c.style.display=t?"block":"none"}
+function endTour(){touring=false;TT.forEach(clearTimeout);TT=[];cap("");$("bTour").textContent="Play guided demo"}
+$("bTour").onclick=()=>{if(touring){endTour();return}
+ if(!B.length){toast("Add a bin first, or restore the demo data");return}
+ touring=true;$("bTour").textContent="Stop guided demo";if(liveT)setLive(false);if(curPage!=="dash")showPage("dash");
+ run=false;truck.visible=false;clearRoute();stops=[];RT=[];RB("Plan a route to see the stop order and watch the truck run it.");
+ Object.entries(INITMAP).forEach(([id,cs])=>{const b=get(id);if(b)cs.forEach((v,k)=>Object.assign(b.c[k],v))});B.forEach(sync);render();
+ const first=(get("SC-104")||B[0]).id;
+ const steps=[[0,()=>{$("bOver").click();flash(0);cap("Sense: each bin has wet and dry compartments, each with an ultrasonic sensor and a load cell (simulated).")}],
+ [5500,()=>{select(first);flash(1);cap("Predict: AI blends fill level, weight and growth rate to forecast each compartment two hours ahead.")}],
+ [12000,()=>{$("bSurge").click();flash(2);cap("Prioritize: a crowd event pushes three compartments up, and priorities update instantly.")}],
+ [18000,()=>{$("bOver").click();plan();cap("Act: the truck collects only the compartments that need it, critical bins first.")}],
+ [36000,()=>cap("Result: "+(IMP||"route complete")+". Fewer trips, less fuel, no overflow.")],[43000,endTour]];
+ TT=steps.map(([t,fn])=>setTimeout(fn,t))};
+// ---------- bin management (CRUD) ----------
+let fMode=null,ack=false;
+const FLD=[["Basic information",[["id","Bin ID","text","SC-129"],["name","Bin name","text","Market Road Bin"],["location","Location","text","Kukatpally Market"],["exact","Exact location (address)","text","Street, landmark, city"],["lat","Latitude","number","17.3850"],["lng","Longitude","number","78.4867"],["ward","Area / ward","text","Ward 12"],["inst","Installation date","date"],["status","Bin status","select",[["online","🟢 Online"],["warning","🟡 Warning"],["offline","🔴 Offline"]]]],"Exact location: enter an address (option 1), latitude and longitude (option 2), or both."],
+["Waste configuration",[["wetCap","Wet waste capacity (kg)","number"],["dryCap","Dry waste capacity (kg)","number"],["wetW","Wet waste current weight (kg)","number"],["dryW","Dry waste current weight (kg)","number"],["wetF","Wet waste fill %","number"],["dryF","Dry waste fill %","number"]]],
+["Sensor configuration",[["ultra","Ultrasonic sensor","select",[["1","Enabled"],["0","Disabled"]]],["wsens","Weight sensor","select",[["1","Enabled"],["0","Disabled"]]],["esp","ESP32 device ID","text","ESP32-SC129"],["sstat","Sensor status","select",[["online","🟢 Online"],["warning","🟡 Warning"],["offline","🔴 Offline"]]]],"If a sensor is disabled, the other sensor's reading is used for that measurement."]];
+const fld=([id,l,t,o])=>t==="select"?`<label>${l}<select id="f_${id}">${o.map(([v,x])=>`<option value="${v}">${x}</option>`).join("")}</select><small class="er" id="e_${id}"></small></label>`:`<label>${l}<input id="f_${id}" type="${t}"${t==="number"?' step="any"':""}${o?` placeholder="${o}"`:""}><small class="er" id="e_${id}"></small></label>`;
+$("fBody").innerHTML=FLD.map(([t,fs,h])=>`<fieldset><legend>${t}</legend>${h?`<p class="mut">${h}</p>`:""}<div class="fg">${fs.map(fld).join("")}</div></fieldset>`).join("");
+const FK=FLD.flatMap(g=>g[1]).map(f=>f[0]);
+const nextId=()=>"SC-"+(Math.max(128,...B.map(b=>+(/^SC-(\d+)$/.exec(b.id)||[0,0])[1]))+1);
+function openForm(id){const e=id?get(id):null;fMode=e?e.id:null;ack=false;$("fT").textContent=e?"Edit smart bin "+e.id:"Add new smart bin";$("fSave").textContent=e?"Save changes":"Save bin";$("fErr").textContent="";
+ const nid=nextId(),v=e?{id:e.id,name:e.name,location:e.location,exact:e.exact||"",lat:e.lat==null?"":e.lat,lng:e.lng==null?"":e.lng,ward:e.ward||"",inst:e.inst||"",status:e.status,wetCap:e.c[0].cap,dryCap:e.c[1].cap,wetW:+fmt(e.c[0].w),dryW:+fmt(e.c[1].w),wetF:Math.round(e.c[0].fill),dryF:Math.round(e.c[1].fill),ultra:e.ultra?1:0,wsens:e.wsens?1:0,esp:e.esp,sstat:e.sstat}:
+ {id:nid,name:"",location:"",exact:"",lat:"",lng:"",ward:"",inst:new Date().toISOString().slice(0,10),status:"online",wetCap:25,dryCap:20,wetW:0,dryW:0,wetF:0,dryF:0,ultra:1,wsens:1,esp:"ESP32-"+nid.replace("-",""),sstat:"online"};
+ FK.forEach(k=>{$("f_"+k).value=v[k];$("e_"+k).textContent="";$("f_"+k).setAttribute("aria-invalid","false")});$("f_id").disabled=!!e;$("vw").hidden=true;$("fm").hidden=false;$(e?"f_name":"f_id").focus()}
+const readForm=()=>{const v={};FK.forEach(k=>v[k]=$("f_"+k).value.trim());return v};
+function validate(v){const er={},wr=[],n=k=>v[k]===""?NaN:+v[k];v.id=v.id.toUpperCase();
+ if(!v.id)er.id="Bin ID is required.";else if(!/^[A-Z0-9_-]{2,20}$/.test(v.id))er.id="Use letters, numbers, - or _ (2 to 20 characters).";else if(!fMode&&B.some(b=>b.id===v.id))er.id=`Bin ID ${v.id} already exists.`;else if(!fMode&&B.length>=60)er.id="This prototype supports up to 60 bins.";
+ ["name","location","esp"].forEach(k=>{if(!v[k])er[k]="This field is required."});
+ const la=v.lat!=="",lo=v.lng!=="";
+ if(la||lo){if(!la)er.lat="Enter the latitude too.";else if(isNaN(n("lat"))||n("lat")<-90||n("lat")>90)er.lat="Latitude must be between -90 and 90.";
+  if(!lo)er.lng="Enter the longitude too.";else if(isNaN(n("lng"))||n("lng")<-180||n("lng")>180)er.lng="Longitude must be between -180 and 180."}
+ else if(!v.exact)er.exact="Enter an address, or latitude and longitude.";
+ [["wetCap","Wet capacity"],["dryCap","Dry capacity"]].forEach(([k,l])=>{if(isNaN(n(k))||n(k)<=0)er[k]=l+" must be greater than 0."});
+ [["wetW","wetCap","Wet"],["dryW","dryCap","Dry"]].forEach(([k,c,l])=>{if(isNaN(n(k)))er[k]="Enter a weight of 0 or more.";else if(n(k)<0)er[k]="Weight cannot be negative.";else if(!er[c]&&n(k)>n(c))wr.push(`${l} weight (${n(k)} kg) is above the ${l.toLowerCase()} capacity (${n(c)} kg).`)});
+ ["wetF","dryF"].forEach(k=>{if(isNaN(n(k))||n(k)<0||n(k)>100)er[k]="Fill must be between 0 and 100."});
+ return{er,wr}}
+$("fBody").addEventListener("input",()=>{if(ack){ack=false;$("fSave").textContent=fMode?"Save changes":"Save bin";$("fErr").textContent=""}});
+$("fForm").onsubmit=e=>{e.preventDefault();const v=readForm(),{er,wr}=validate(v),ks=Object.keys(er);
+ FK.forEach(k=>{$("e_"+k).textContent=er[k]||"";$("f_"+k).setAttribute("aria-invalid",String(!!er[k]))});
+ if(ks.length){$("fErr").className="er";$("fErr").textContent="Please fix the highlighted fields.";$("f_"+ks[0]).focus();return}
+ if(wr.length&&!ack){ack=true;$("fErr").className="er warn";$("fErr").textContent="Warning: "+wr.join(" ")+" Press the button again to save anyway.";$("fSave").textContent="Save anyway";return}
+ $("fErr").textContent="";commit(v)};
+function commit(v){const N=k=>+v[k],ll=v.lat!=="",rec={name:v.name,location:v.location,exact:v.exact,lat:ll?N("lat"):null,lng:ll?N("lng"):null,ward:v.ward,inst:v.inst,status:v.status,sstat:v.sstat,ultra:N("ultra"),wsens:N("wsens"),esp:v.esp};
+ if(!fMode){const b=Object.assign({id:v.id,demo:0,seen:Date.now(),c:[mkC(N("wetF"),N("wetW"),N("wetCap"),2.4),mkC(N("dryF"),N("dryW"),N("dryCap"),1.6)]},rec),g=free(ll?toXZ(b.lat,b.lng):[0,0],null);
+  b.gx=g[0];b.gz=g[1];P[b.id]=g;sync(b);B.push(b);add3D(b);sel=b.id;$("fm").hidden=true;afterChange("Bin "+b.id+" created. It now takes part in prediction, priority and routing.");showPage("bins")}
+ else{const b=get(fMode),moved=ll&&(b.lat!==rec.lat||b.lng!==rec.lng);Object.assign(b,rec);
+  [["wet",0],["dry",1]].forEach(([p,k])=>{b.c[k].cap=N(p+"Cap");b.c[k].w=N(p+"W");b.c[k].fill=N(p+"F")});sync(b);
+  if(moved){const g=free(toXZ(b.lat,b.lng),b.id);b.gx=g[0];b.gz=g[1];P[b.id]=g;O[b.id].g.position.set(g[0],0,g[1])}
+  b.seen=Date.now();$("fm").hidden=true;afterChange("Bin "+b.id+" updated")}}
+function afterChange(msg){if(!get(sel))sel=B[0]?B[0].id:null;const had=stops.length;run=false;truck.visible=false;clearRoute();stops=[];RT=[];if(had)plan(false);else render();persist();log(esc(msg));toast(msg)}
+function ask(t,m,ok,fn){$("dT").textContent=t;$("dM").textContent=m;$("dOk").textContent=ok;$("dOk").onclick=()=>{$("dc").hidden=true;fn()};$("dc").hidden=false;$("dOk").focus()}
+function del(id){rm3D(id);B=B.filter(b=>b.id!==id);delete P[id];afterChange("Bin "+id+" deleted")}
+const riskPill=l=>`<span class="pill" style="background:${l<0?"#6b7782":sig[l]};color:${l===1?"#16222e":"#fff"}">${l<0?"No data":NAME[l].toUpperCase()}</span>`;
+function view(id){const b=get(id);if(!b)return;const ok=isLive(b),A=b.c.map(an),st=k=>k?"DISABLED":ICON[stat(b)]+" "+stat(b).toUpperCase();
+ $("vBody").innerHTML=`<div class="ih"><h2 style="font:700 22px system-ui;margin:0">Smart bin ${b.id}</h2><button class="ghost x" data-close>Close</button></div><p class="mut">${esc(b.name)} · ${modeText(b)}${b.demo?"":""}</p>${ok?"":'<p class="warnbar">Sensor data unavailable. Values are the last known readings.</p>'}
+ <div class="cmp" style="--tc:var(--acc)"><b>📍 Location</b><br>${esc(b.location)}${b.ward?", "+esc(b.ward):""}<br>${hasLL(b)?`Latitude: ${b.lat}<br>Longitude: ${b.lng}<br>`:""}${b.exact?"Address: "+esc(b.exact)+"<br>":""}Installed: ${esc(b.inst||"-")}</div>`+
+ b.c.map((c,k)=>`<div class="cmp" style="--tc:var(--${k?"dry":"wet"})"><b><i class="sw"></i>${k?"DRY":"WET"} WASTE</b><dl><dt>Fill</dt><dd>${Math.round(c.fill)}%</dd><dt>Weight</dt><dd>${fmt(c.w)} / ${c.cap} kg</dd><dt>Weight utilization</dt><dd>${Math.round(A[k].wp)}%</dd><dt>Predicted (2 h)</dt><dd>${Math.round(A[k].pred)}%</dd><dt>Risk</dt><dd>${riskPill(ok?A[k].l:-1)}</dd><dt>Priority</dt><dd>${A[k].pri} / 100</dd></dl></div>`).join("")+
+ `<div class="cmp" style="--tc:var(--acc)"><b>SENSORS</b><dl><dt>ESP32 (${esc(b.esp)})</dt><dd>${ICON[b.sstat]||""} ${esc(String(b.sstat).toUpperCase())}</dd><dt>Ultrasonic</dt><dd>${st(!b.ultra)}</dd><dt>Load cell</dt><dd>${st(!b.wsens)}</dd></dl></div>
+ <div class="fa"><button class="pri" data-a="edit" data-id="${b.id}">Edit bin</button><button class="ghost" data-a="show" data-id="${b.id}">Show in 3D</button><a class="ghost btn" target="_blank" rel="noopener" href="${mapURL(b)}">Open location</a><button class="ghost dng" data-a="del" data-id="${b.id}">Delete bin</button></div>`;$("vw").hidden=false}
+function act(a,id){if(a==="edit")openForm(id);else if(a==="view")view(id);else if(a==="show"){$("vw").hidden=true;select(id)}else if(a==="del"){ask("Delete bin",`Are you sure you want to delete ${id}?`,"Delete bin",()=>{$("vw").hidden=true;del(id)})}}
+$("vBody").onclick=e=>{const x=e.target.closest("[data-a]");if(x)act(x.dataset.a,x.dataset.id)};
+$("bBody").onclick=e=>{const x=e.target.closest("[data-a]");if(x)act(x.dataset.a,x.closest("tr").dataset.id)};
+document.querySelectorAll("[data-add]").forEach(x=>x.onclick=()=>openForm(null));
+$("bReset").onclick=()=>ask("Restore demo data","Replace all bins with the 6 demo bins? Your changes will be lost.","Restore demo data",()=>{B.slice().forEach(b=>rm3D(b.id));Object.keys(P).forEach(k=>delete P[k]);B=demo();B.forEach(b=>{P[b.id]=[b.gx,b.gz];add3D(b)});sel="SC-104";afterChange("Demo data restored")});
+["bq","bst","brk","bwt"].forEach(i=>$(i).addEventListener("input",renderBins));
+function binList(){const q=$("bq").value.trim().toLowerCase(),st=$("bst").value,r=$("brk").value,wt=$("bwt").value;
+ return B.filter(b=>{if(q&&![b.id,b.name,b.location,b.ward].some(x=>String(x||"").toLowerCase().includes(q)))return false;if(st!=="all"&&stat(b)!==st)return false;
+  if(r!=="all"){const l=!isLive(b)?-1:wt==="wet"?an(b.c[0]).l:wt==="dry"?an(b.c[1]).l:worst(b);if(String(l<0?"none":l)!==r)return false}return true})}
+function renderBins(){const L=binList();$("bcount").textContent=`Showing ${L.length} of ${B.length} bins. Demo bins use simulated IoT data.`;
+ $("bBody").innerHTML=L.length?L.map(b=>{const ok=isLive(b),w=c=>ok?Math.round(c.fill)+"%":"N/A",g=c=>ok?fmt(c.w)+" kg":"N/A";return `<tr data-id="${b.id}"><td data-l="Bin ID"><b>${b.id}</b>${b.demo?'<span class="chip">Demo</span>':""}</td><td data-l="Name">${esc(b.name)}</td><td data-l="Location">${esc(b.location)}${b.ward?" · "+esc(b.ward):""}</td><td data-l="Wet fill">${w(b.c[0])}</td><td data-l="Dry fill">${w(b.c[1])}</td><td data-l="Wet weight">${g(b.c[0])}</td><td data-l="Dry weight">${g(b.c[1])}</td><td data-l="Overall risk">${riskPill(ok?worst(b):-1)}</td><td data-l="Sensor status">${ICON[stat(b)]} ${up(stat(b))}<br><small class="mut">${modeText(b)}</small></td><td data-l="Actions" class="acts3"><button data-a="edit">✏️ Edit</button><button data-a="view">👁️ View</button><button data-a="del">🗑️ Delete</button></td></tr>`}).join(""):`<tr class="emp"><td colspan="10">${B.length?"No bins match your search or filters.":"No bins yet. Use “+ Add new bin”, or restore the demo data."}</td></tr>`}
+function renderAI(){const L=all().filter(x=>x.ok).sort((a,b)=>b.a.pri-a.a.pri),is=x=>aiSel&&x.b.id===aiSel[0]&&x.k===aiSel[1];
+ $("aBody").innerHTML=L.length?L.map(x=>`<tr data-id="${x.b.id}" data-k="${x.k}"${is(x)?' class="sel"':""}><td data-l="Bin"><b>${x.b.id}</b></td><td data-l="Waste">${CT(x.k)}</td><td data-l="Fill">${Math.round(x.c.fill)}%</td><td data-l="Weight">${fmt(x.c.w)} / ${x.c.cap} kg</td><td data-l="Weight utilization">${Math.round(x.a.wp)}%</td><td data-l="Growth">+${fmt(x.a.g)}% / h</td><td data-l="Predicted (2 h)">${Math.round(x.a.pred)}%</td><td data-l="Risk">${riskPill(x.a.l)}</td><td data-l="Priority">${x.a.pri}</td><td data-l="Action">${ACTS[x.a.l]}</td></tr>`).join(""):'<tr class="emp"><td colspan="10">No bins are reporting data.</td></tr>';
+ const f=L.find(is)||L[0];$("aWhy").textContent=f?why(f.b,f.k,f.a):"Select a bin to see the explanation."}
+$("aBody").onclick=e=>{const r=e.target.closest("tr[data-id]");if(r){aiSel=[r.dataset.id,+r.dataset.k];renderAI()}};
+function renderIoT(){$("iBody").innerHTML=B.length?B.map(b=>{const ok=isLive(b),sc=(en)=>en?ICON[stat(b)]+" "+up(stat(b)):"Disabled";return `<tr data-id="${b.id}"><td data-l="Bin"><b>${b.id}</b></td><td data-l="ESP32 device">${esc(b.esp)}<br><small class="mut">${ICON[b.sstat]||""} ${esc(up(String(b.sstat)))}</small></td><td data-l="Ultrasonic">${sc(b.ultra)}</td><td data-l="Load cell">${sc(b.wsens)}</td><td data-l="Data mode">${modeText(b)}</td><td data-l="Last reading">${ok?new Date(b.seen||Date.now()).toLocaleTimeString():"Unavailable"}</td></tr>`}).join(""):'<tr class="emp"><td colspan="6">No bins yet.</td></tr>'}
+function renderPage(){if(curPage==="bins")renderBins();else if(curPage==="ai")renderAI();else if(curPage==="iot")renderIoT()}
+function showPage(p){curPage=p;document.body.dataset.page=p;document.querySelectorAll(".pg").forEach(x=>{x.hidden=x.id!=="pg-"+p});document.querySelectorAll(".nav [data-p]").forEach(b=>b.setAttribute("aria-current",b.dataset.p===p?"page":"false"));renderPage()}
+document.querySelectorAll(".nav [data-p]").forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+
+$("sEdit").onclick=()=>{if(sel)openForm(sel)};$("sDel").onclick=()=>{if(sel)act("del",sel)};
+// input
+const cv=R.domElement,pt={},ray=new THREE.Raycaster();let mv=0;
+cv.onpointerdown=e=>{pt[e.pointerId]=[e.clientX,e.clientY];mv=0;idle=performance.now();cv.setPointerCapture(e.pointerId)};
+cv.onpointermove=e=>{const p=pt[e.pointerId];if(!p)return;idle=performance.now();const ids=Object.keys(pt);
+ if(ids.length>1){const o=pt[ids.find(i=>i!=e.pointerId)],d0=Math.hypot(p[0]-o[0],p[1]-o[1]),d1=Math.hypot(e.clientX-o[0],e.clientY-o[1]);rad2=clamp(rad2*d0/(d1||1))}
+ else{th-=(e.clientX-p[0])*.006;ph=Math.max(.3,Math.min(1.4,ph-(e.clientY-p[1])*.005))}
+ mv+=Math.abs(e.clientX-p[0])+Math.abs(e.clientY-p[1]);pt[e.pointerId]=[e.clientX,e.clientY]};
+cv.onpointerup=e=>{delete pt[e.pointerId];if(mv<6){const rc=cv.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1),C);const h=ray.intersectObjects(pick)[0];if(h)select(h.object.userData.id)}};
+cv.onpointercancel=e=>delete pt[e.pointerId];
+cv.addEventListener("wheel",e=>{rad2=clamp(rad2+e.deltaY*.03);idle=performance.now();e.preventDefault()},{passive:false});
+function fit(){const st=$("stage"),w=Math.max(200,st.clientWidth||innerWidth),h=Math.max(200,st.clientHeight||innerHeight);R.setSize(w,h);C.aspect=w/h;C.updateProjectionMatrix()}addEventListener("resize",fit);if(window.ResizeObserver)new ResizeObserver(fit).observe($("stage"));fit();
+// loop
+const V=new THREE.Vector3();let last=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000||0);last=now;
+ if(!reduce&&!run&&now-idle>7000)th+=dt*.04;
+ tg.lerp(tg2,.07);rad+=(rad2-rad)*.07;
+ C.position.set(tg.x+rad*Math.sin(ph)*Math.sin(th),tg.y+rad*Math.cos(ph),tg.z+rad*Math.sin(ph)*Math.cos(th));C.lookAt(tg);
+ if(run){dist+=dt*7;place(Math.min(dist,len));stopAt.forEach((s,i)=>{if(!done[i]&&dist>=s){done[i]=1;collect(i)}});
+  if(dist>=len){run=false;log("Route complete, truck back at depot");setTimeout(()=>{if(!run)truck.visible=false},1800)}}
+ const w=cv.clientWidth,h=cv.clientHeight;
+ for(const k in O){const o=O[k],p=o.l===3&&!reduce?Math.sin(now/280):0;o.ring.scale.setScalar(1+.18*p);o.ring.material.opacity=o.l>=2?.55+.3*p:.3;
+  V.set(P[k][0],3.9,P[k][1]).project(C);o.tag.style.transform=`translate(${(V.x*.5+.5)*w}px,${(-V.y*.5+.5)*h}px) translate(-50%,-100%)`;o.tag.style.display=V.z<1?"flex":"none"}
+ V.set(D[0],2.4,D[1]).project(C);dtag.style.transform=`translate(${(V.x*.5+.5)*w}px,${(-V.y*.5+.5)*h}px) translate(-50%,-100%)`;dtag.style.display=V.z<1?"flex":"none";
+ R.render(S,C)}
+showPage("dash");theme();log("System ready. Simulated IoT data. Select a bin to inspect it.");requestAnimationFrame(loop);
+</script></body></html>
