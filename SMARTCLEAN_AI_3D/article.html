@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMARTCLEAN AI — Smarter Waste Collection with AI and IoT</title>
+<style>
+body{font-family:Inter,Arial,sans-serif;line-height:1.7;max-width:900px;margin:auto;padding:40px 22px;color:#17202a;background:#f7faf8}
+main{background:white;padding:38px;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+h1{font-size:42px;line-height:1.15;margin-bottom:10px}h2{margin-top:34px} .tag{display:inline-block;background:#e7f7ee;padding:7px 12px;border-radius:999px;margin:4px;font-size:14px}
+a{color:#087f5b} .cta{padding:20px;border-radius:14px;background:#eefaf5;margin-top:28px}
+</style>
+</head>
+<body><main>
+<div>
+<span class="tag">AI</span><span class="tag">IoT</span><span class="tag">Smart Cities</span><span class="tag">Sustainability</span>
+</div>
+<h1>SMARTCLEAN AI: Using AI and IoT to Build Smarter Waste Collection</h1>
+<p><strong>Sense → Predict → Prioritize → Act</strong></p>
+
+<h2>The Problem</h2>
+<p>Waste collection is often planned around fixed schedules. When the amount of waste changes from day to day, this can create two problems: bins may reach a critical level before the next collection, while collection vehicles may visit bins that do not yet require service. Operators also need a clear way to monitor distributed bins and decide which locations need attention first.</p>
+
+<h2>The Solution</h2>
+<p>SMARTCLEAN AI is a predictive waste-management prototype that combines IoT-style bin monitoring with AI-assisted prediction, priority scoring and collection-route planning. The goal is to move from a purely schedule-based workflow toward a data-driven operational workflow.</p>
+
+<h2>How It Works</h2>
+<h3>1. Sense</h3>
+<p>Smart bins can use ESP32/ESP8266 controllers with ultrasonic sensing for physical fill level and load-cell sensing through an HX711 for weight. Separate wet and dry compartments can be monitored independently.</p>
+<h3>2. Predict</h3>
+<p>The platform uses current readings, recent growth and historical patterns to estimate near-term fill and overflow risk. A combined view is more useful than treating weight alone as an exact measure of fullness because waste density varies.</p>
+<h3>3. Prioritize</h3>
+<p>Bins are assigned an operational priority based on factors such as predicted fill, weight, growth rate, waste type and risk. This helps operators focus attention on bins that need service sooner.</p>
+<h3>4. Act</h3>
+<p>The system generates a collection sequence so that an operator can move through prioritized locations rather than manually checking every bin.</p>
+
+<h2>Prototype Features</h2>
+<ul>
+<li>3D city-style operations dashboard</li>
+<li>Wet/dry waste compartment monitoring</li>
+<li>Weight and fill-level visualization</li>
+<li>AI/predictive risk view</li>
+<li>Priority-based bin management</li>
+<li>CRUD operations for adding, editing and deleting bins</li>
+<li>Exact bin location and coordinate support</li>
+<li>IoT simulation for demonstrations</li>
+<li>Collection route planning</li>
+</ul>
+
+<h2>Technology</h2>
+<p>The prototype is built as a web application with a 3D visualization layer. The hardware concept uses ESP32/ESP8266, ultrasonic sensors, load cells and HX711 modules. The predictive layer can be connected to real historical municipal data when such data is available.</p>
+
+<h2>Real-World Impact</h2>
+<p>With real deployment data, SMARTCLEAN AI could help waste-management teams identify high-priority bins, improve collection planning and reduce unnecessary inspection trips. The current prototype demonstrates the workflow using simulated data; it does not claim measured municipal performance.</p>
+
+<h2>Future Scope</h2>
+<ul>
+<li>Connect live municipal IoT devices</li>
+<li>Train forecasting models on historical collection data</li>
+<li>Add fleet and vehicle-capacity constraints</li>
+<li>Use live road-network routing and traffic data</li>
+<li>Add operator alerts and maintenance prediction</li>
+<li>Build analytics for ward-level planning</li>
+</ul>
+
+<div class="cta">
+<strong>Live Demo:</strong> <a href="https://smartcleanai-dsfrct63f-alphaintelligence.vercel.app/">SMARTCLEAN AI</a><br>
+<strong>Source Code:</strong> <a href="https://github.com/siddarthkasuba-lab/SMARTCLEANAI">GitHub Repository</a>
+</div>
+
+<p><em>Built as a hackathon prototype focused on smarter, more data-driven waste collection.</em></p>
+</main></body></html>
